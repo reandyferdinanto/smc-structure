@@ -1,0 +1,61 @@
+strategy:
+  bb_length: 20
+  bb_mult: 2.0
+  squeeze_lookback: 100
+  squeeze_percentile: 25
+  atr_length: 14
+  displacement_atr_mult: 1.2
+  fvg_min_atr_mult: 0.15
+  sweep_atr_mult: 0.05
+  equal_level_atr_mult: 0.10
+  ote_min: 0.62
+  ote_max: 0.786
+  min_rr: 1.5
+  max_signals_per_day: 3
+  cooldown_bars: 16
+  max_bars_back: 500
+  pivot_k_major: 5
+  pivot_k_internal: 2
+  ob_require_fresh: true
+  fvg_max_fill_pct: 0.5
+  sl_padding_atr: 0.15
+  tp1_atr_mult: 1.0
+  setup_a_enabled: true
+  setup_b_enabled: true
+
+regime:
+  method: rule
+  adx_trend_threshold: 25
+  atr_rank_volatile: 80
+  bbw_rank_volatile: 70
+  ema_length: 50
+  ema_slope_min: 0.5
+  hmm_refit_days: 30
+
+orb:
+  london_window: ["07:00", "08:00"]
+  newyork_window: ["12:00", "13:00"]
+  min_consolidation_candles: 3
+  retest_tolerance_atr: 0.15
+  require_h1_squeeze: true
+
+sessions:
+  london: ["07:00", "10:00"]
+  newyork: ["12:00", "15:00"]
+  suppress_out_of_session: true
+
+news:
+  blackout_minutes: 30
+  impacts: ["High"]
+  currencies: ["USD"]
+
+confidence:
+  base: 40
+  threshold_entry: 70
+  threshold_watchlist: 50
+  volatile_penalty: 10
+  after_two_losses_boost: 5
+
+symbols:
+  name: XAUUSD
+  primary: paxg
