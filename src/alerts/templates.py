@@ -110,6 +110,23 @@ def render_cancel(event: SignalEvent, reason: str) -> str:
     )
 
 
+def render_reentry(result, symbol: str = "XAUUSD") -> str:
+    icon = "\U0001f501"
+    side = "LONG" if result.side == "long" else "SHORT"
+    lines = [
+        f"{icon} <b>RE-ENTRY {side} \u2014 {symbol}</b>",
+        "\u2501" * 12,
+        f"Entry <code>{result.entry:.2f}</code>",
+        f"SL    <code>{result.sl:.2f}</code>",
+        f"TP1   <code>{result.tp1:.2f}</code>  RR <b>{result.rr:.2f}</b>",
+        f"TP2   <code>{result.tp2:.2f}</code>",
+        "",
+        "Pullback ke BB middle + reject. Hanya jika RR sisa masih layak.",
+        f"<i>Dikirim {fmt_wib_utc(utcnow())}</i>",
+    ]
+    return "\n".join(lines)
+
+
 def render_update(update) -> str:
     if update.status == "TP1":
         icon, title = "\u2705", "TP1 HIT"

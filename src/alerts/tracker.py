@@ -238,5 +238,27 @@ class TradeTracker:
             self._conn.commit()
         return updates
 
+    def last_signal(self):
+        """Most recent setup: armed first, then confirmed trade."""
+        cur = self._conn.execute(
+            """
+            SELECT dedupe_key, symbol, setup, side, zone_low, zone_high,
+                   sl, tp1, tp2, created_at AS ts, status
+              FROM armed_signals ORDER BY created_at DESC LIMIT 1
+            """
+        )
+        row = cur.fetchone()
+        if row is not None:
+            return row
+        cur = self._conn.execute(
+            """
+            SELECT dedupe_key, symbol, setup, side,
+                   entry AS zone_low, entry AS zone_high,
+                   sl, tp1, tp2, opened_at AS ts, status
+              FROM tracked_signals ORDER BY opened_at DESC LIMIT 1
+            """
+        )
+        return cur.fetchone()
+
     def close(self) -> None:
         self._conn.close()

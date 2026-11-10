@@ -39,6 +39,14 @@ tests/        unit test primitif strategi
 python scripts/backtest.py --days 60 --every 4 --tag quick60
 ```
 
+## Re-entry (sinyal terlewat)
+
+```bash
+python scripts/reentry.py --tf m5
+```
+
+Panduan: `docs/12-reentry.md`.
+
 Panduan lengkap: `docs/11-cara-backtest.md`.
 
 ## Dokumentasi

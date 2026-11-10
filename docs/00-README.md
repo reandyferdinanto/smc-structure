@@ -103,6 +103,12 @@ Endpoint berikut **sudah dites live** dari mesin development:
 
 ## 7. Changelog
 
+### v1.6 — 10 Nov 2026
+Re-entry untuk sinyal terlewat:
+- `scripts/reentry.py` (`--tf m5|m1`, `--send`) → `12-reentry.md`
+- Syarat: progress < 70% ke TP1, bounce BB middle, RR sisa ≥ 1.2, belum lewat invalid
+- `TradeTracker.last_signal()` membaca sinyal terakhir dari DB
+
 ### v1.5 — 10 Nov 2026
 Perlindungan news mendadak:
 - Pre-news warning 15 menit (jika ada posisi/armed) → `06 §9.2`
