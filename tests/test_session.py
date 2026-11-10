@@ -2,7 +2,13 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from src.utils.time import in_killzone, is_break, is_market_open, session_label
+from src.utils.time import (
+    fmt_wib_utc,
+    in_killzone,
+    is_break,
+    is_market_open,
+    session_label,
+)
 
 
 def _ts(hour: int, minute: int = 0) -> datetime:
@@ -24,6 +30,11 @@ def test_killzone_and_break():
     assert in_killzone(_ts(13)) is True
     assert in_killzone(_ts(2)) is False
     assert is_break(_ts(21, 15)) is True
+
+
+def test_fmt_wib_utc():
+    assert fmt_wib_utc(_ts(4, 38), "%H:%M") == "11:38 WIB (04:38 UTC)"
+    assert fmt_wib_utc(_ts(21, 5), "%H:%M") == "04:05 WIB (21:05 UTC)"
 
 
 def test_market_open_weekend():

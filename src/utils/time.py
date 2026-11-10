@@ -43,6 +43,12 @@ def to_wib_str(dt: datetime, fmt: str = "%d %b %Y %H:%M WIB") -> str:
     return to_wib(dt).strftime(fmt)
 
 
+def fmt_wib_utc(dt: datetime, fmt: str = "%d %b %Y %H:%M") -> str:
+    """Render a datetime as `10 Nov 2026 11:38 WIB (04:38 UTC)`."""
+    ts = ensure_utc(dt)
+    return f"{ts.astimezone(WIB).strftime(fmt)} WIB ({ts.strftime('%H:%M')} UTC)"
+
+
 def session_label(dt: datetime) -> str:
     """Session label in UTC, matching docs/02-spesifikasi-strategi.md §13.4."""
     hour = ensure_utc(dt).hour

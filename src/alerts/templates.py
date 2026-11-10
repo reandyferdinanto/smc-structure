@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 
 from ..strategy.types import SignalEvent
-from ..utils.time import session_display, to_wib_str
+from ..utils.time import fmt_wib_utc, session_display, to_wib_str, utcnow
 
 
 def render_entry(event: SignalEvent, basis_pct: float | None = None) -> str:
@@ -54,7 +54,8 @@ def render_setup(event: SignalEvent) -> str:
         "<b>Belum entry.</b> Tunggu pesan <b>OPEN \u2026 NOW</b> setelah konfirmasi M5.",
         f"Confidence {event.confidence}% \u00b7 {session_display(event.session)}",
         "",
-        f"<i>{to_wib_str(event.trigger_ts)} \u00b7 armed</i>",
+        f"<i>Candle close {fmt_wib_utc(event.trigger_ts)}</i>",
+        f"<i>Dikirim {fmt_wib_utc(utcnow(), '%d %b %Y %H:%M')}</i>",
     ]
     return "\n".join(lines)
 
@@ -71,6 +72,7 @@ def render_trigger(event: SignalEvent, reasons: list[str] | None = None) -> str:
         f"TP2   <code>{event.tp2:.2f}</code>",
         "",
         "Konfirmasi M5 valid. Eksekusi sekarang, jangan chase >0.15 ATR.",
+        f"<i>Dikirim {fmt_wib_utc(utcnow())}</i>",
     ]
     if reasons:
         lines.append(f"<i>{' \u00b7 '.join(reasons)}</i>")
@@ -82,6 +84,7 @@ def render_volatility_warning(direction: str, price: float, ratio: float) -> str
     return (
         f"\u26a1 <b>VOLATILITY SPIKE {arrow}</b>\n"
         f"Harga <code>{price:.2f}</code> \u00b7 range {ratio:.1f}\u00d7 normal\n"
+        f"{fmt_wib_utc(utcnow())}\n"
         "<i>Entry baru ditahan sementara. Kemungkinan news mendadak.</i>"
     )
 
@@ -89,7 +92,8 @@ def render_volatility_warning(direction: str, price: float, ratio: float) -> str
 def render_prenews(event, minutes: int, open_positions: int) -> str:
     return (
         f"\U0001f534 <b>HIGH-IMPACT NEWS dalam {minutes} menit</b>\n"
-        f"{event.title} ({event.currency}) \u00b7 {event.ts_utc.strftime('%H:%M')} UTC\n"
+        f"{event.title} ({event.currency})\n"
+        f"Jadwal: <b>{fmt_wib_utc(event.ts_utc, '%H:%M')}</b>\n"
         f"Posisi terbuka: <b>{open_positions}</b>\n"
         "<i>Pertimbangkan tutup/kurangi posisi sebelum rilis. Entry baru diblokir "
         "\u00b130 menit.</i>"
