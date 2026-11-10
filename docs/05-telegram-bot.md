@@ -376,3 +376,27 @@ RR dihitung ulang dari entry aktual; SL mengikuti sweep low terbaru.
   two-stage membutuhkan data M5 — belum diimplementasikan. Jangan mengklaim hasil
   two-stage sebelum ada backtest M5.
 - Setup yang di-cancel/expired tetap dicatat di `state/signals.db` (`armed_signals`).
+
+---
+
+## 12. Bot Commands (v1.7)
+
+Bot membaca perintah via `getUpdates` setiap siklus (tanpa webhook publik).
+Hanya `chat_id` di `TELEGRAM_ALLOWED_CHAT_IDS`/`TELEGRAM_CHAT_ID` yang dilayani.
+
+| Perintah | Fungsi |
+|---|---|
+| `/help` | panduan lengkap (alur, perintah, aturan) |
+| `/status` | bias H4, regime, squeeze, spot+basis, jumlah armed/posisi, status mute |
+| `/last` | sinyal terakhir dari DB (zona, SL, TP, status) |
+| `/reentry` | cek re-entry BB middle M5 untuk sinyal terakhir |
+| `/calendar` | event High USD hari ini (WIB + UTC) |
+| `/mute 60` | matikan seluruh alert trading 60 menit |
+| `/unmute` | aktifkan kembali |
+
+Catatan:
+- `/status` dan `/calendar` melakukan fetch data (bisa 3–8 detik).
+- `/mute` menulis `state/mute_until`; `run_once` melewati semua pengiriman selama aktif.
+  Command tetap dibalas (karena dikirim oleh handler, bukan alert).
+- Offset update disimpan di `state/tg_offset`; pada start pertama, backlog lama dilewati
+  agar bot tidak membalas pesan historis.

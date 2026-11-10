@@ -7,6 +7,7 @@ from datetime import datetime
 import pandas as pd
 
 from .alerts import templates, telegram
+from .alerts.commands import Commands
 from .alerts.dedupe import Dedupe
 from .alerts.tracker import TradeTracker
 from .config import Config, dry_run, load_env_file
@@ -19,6 +20,7 @@ from .strategy.trigger import ArmedSetup
 from .strategy.types import SignalEvent
 from .utils.log import get_logger
 from .utils.time import to_wib_str, utcnow
+from .utils import mute
 
 log = get_logger("main")
 
@@ -151,6 +153,9 @@ def run_once(config: Config | None = None, send: bool | None = None) -> dict | N
     market = MarketData()
     now = utcnow()
     should_send = send if send is not None else not dry_run()
+    if mute.is_muted():
+        log.info("muted: trade alerts suppressed")
+        should_send = False
 
     frames = {
         tf: closed_bars(market.ohlcv(tf, 500), tf, now)
@@ -316,6 +321,10 @@ def run_loop(config: Config | None = None) -> None:
             run_once(cfg)
         except Exception as exc:  # noqa: BLE001
             log.error("cycle failed: %s", exc)
+        try:
+            Commands(cfg).poll()
+        except Exception as exc:  # noqa: BLE001
+            log.warning("command poll failed: %s", exc)
         sleep_for = 60 - (time.time() % 60)
         time.sleep(max(5.0, sleep_for))
 
@@ -331,6 +340,10 @@ def main() -> None:
     cfg = Config()
     if args.once or not args.loop:
         payload = run_once(cfg, send=True if args.send else None)
+        try:
+            Commands(cfg).poll()
+        except Exception as exc:  # noqa: BLE001
+            log.warning("command poll failed: %s", exc)
         if payload:
             print(to_wib_str(utcnow()))
     else:

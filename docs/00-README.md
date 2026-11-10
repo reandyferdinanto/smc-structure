@@ -103,6 +103,12 @@ Endpoint berikut **sudah dites live** dari mesin development:
 
 ## 7. Changelog
 
+### v1.7 — 10 Nov 2026
+Bot commands via getUpdates:
+- `/help`, `/status`, `/last`, `/reentry`, `/calendar`, `/mute`, `/unmute` → `05 §12`
+- Mute disimpan di `state/mute_until`; `run_once` mematikan alert saat aktif
+- Offset update di `state/tg_offset`, hanya chat whitelist yang dilayani
+
 ### v1.6 — 10 Nov 2026
 Re-entry untuk sinyal terlewat:
 - `scripts/reentry.py` (`--tf m5|m1`, `--send`) → `12-reentry.md`
