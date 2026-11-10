@@ -102,7 +102,8 @@ xauusd-alerts/
 │   │   └── digest.py           # pesan harian
 │   ├── alerts/
 │   │   ├── telegram.py         # client + retry
-│   │   ├── templates.py        # format HTML
+│   │   ├── templates.py        # format HTML (entry/watchlist/update)
+│   │   ├── tracker.py          # lifecycle sinyal: OPEN → TP1/SL/EXPIRED
 │   │   └── dedupe.py           # sqlite anti-duplikat
 │   ├── backtest/
 │   │   ├── loader.py           # Dukascopy / HistData

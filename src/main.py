@@ -8,6 +8,7 @@ import pandas as pd
 
 from .alerts import templates, telegram
 from .alerts.dedupe import Dedupe
+from .alerts.tracker import TradeTracker
 from .config import Config, dry_run, load_env_file
 from .data.market import MarketData
 from .macro.calendar import blackout, fetch_events
@@ -42,6 +43,24 @@ def run_once(config: Config | None = None, send: bool | None = None) -> dict | N
     if basis is not None:
         log.info("spot=%s basis=%.2f%%", f"{spot.price:.2f}" if spot else "-", basis)
 
+    should_send = send if send is not None else not dry_run()
+
+    tracker = TradeTracker()
+    try:
+        updates = tracker.evaluate(df15, now, commit=should_send)
+        for update in updates:
+            log.info(
+                "update %s %s %s r=%.2f",
+                update.symbol,
+                update.side,
+                update.status,
+                update.result_r,
+            )
+            if should_send:
+                telegram.send(templates.render_update(update))
+    finally:
+        tracker.close()
+
     calendar_ok = True
     is_blackout = False
     next_event = None
@@ -68,7 +87,6 @@ def run_once(config: Config | None = None, send: bool | None = None) -> dict | N
     payload = event.to_dict()
     log.info("signal %s", payload)
 
-    should_send = send if send is not None else not dry_run()
     if not should_send or not calendar_ok:
         if not calendar_ok:
             log.warning("calendar stale -> suppressing alert (fail-closed)")
@@ -87,7 +105,15 @@ def run_once(config: Config | None = None, send: bool | None = None) -> dict | N
             text = templates.render_watchlist(event)
         if telegram.send(text):
             dedupe.mark(event.dedupe_key, str(payload))
-            log.info("alert sent (%s)", "entry" if event.confidence >= engine.conf_entry else "watchlist")
+            tracker = TradeTracker()
+            try:
+                tracker.open_signal(event)
+            finally:
+                tracker.close()
+            log.info(
+                "alert sent (%s)",
+                "entry" if event.confidence >= engine.conf_entry else "watchlist",
+            )
     finally:
         dedupe.close()
     return payload

@@ -26,7 +26,7 @@ pytest
 config/       settings.yaml
 src/data/     adapter gold-api, Binance PAXG, normalizer
 src/strategy/ BB, pivots, liquidity, structure, OB, FVG, OTE, regime, ORB, engine
-src/alerts/   Telegram client, templates, dedupe (sqlite)
+src/alerts/   Telegram client, templates, dedupe (sqlite), trade tracker
 src/macro/    ForexFactory calendar, bias scoring, news
 docs/         rencana lengkap (00–10)
 scripts/      utilitas manual

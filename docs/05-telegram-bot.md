@@ -236,3 +236,74 @@ Secrets disimpan via `wrangler secret put TG_TOKEN` — bukan di kode.
 - [ ] Restart proses → tidak ada duplikat
 - [ ] Telegram mati → masuk outbox, terkirim saat pulih
 - [ ] Whitelist: chat tidak dikenal diabaikan
+
+---
+
+## 10. Trade Tracker — Update SL/TP (v1.3)
+
+Bot tidak berhenti di entry: setiap sinyal yang terkirim dicatat di `state/signals.db`
+dan dipantau sampai selesai.
+
+### 10.1 Alur
+
+```
+entry alert terkirim
+      ▼
+tracked_signals(status=OPEN)
+      ▼  setiap siklus (60 dtk, bar M15 tertutup)
+cek bar setelah opened_at:
+  long : low <= SL  → SL (r=-1)   | high >= TP1 → TP1 (r=+RR)
+  short: high >= SL → SL          | low  <= TP1 → TP1
+  tidak ada & umur > 24 jam → EXPIRED (exit = close terakhir)
+      ▼
+satu pesan update per transisi (terminal, tidak berulang)
+```
+
+### 10.2 Pesan
+
+```
+✅ XAUUSD LONG — TP1 HIT
+━━━━━━━━━━━━
+Entry  4112.70
+Exit   4125.20
+Result +1.73R
+SL 4105.47 · TP1 4125.20
+Setup A · opened 10 Nov 2026 19:00 WIB
+```
+
+```
+❌ XAUUSD LONG — SL HIT
+...
+Result -1.00R
+```
+
+```
+⏳ XAUUSD LONG — EXPIRED (24 jam tanpa hit)
+Exit 4109.10 · Result -0.50R
+```
+
+### 10.3 Aturan
+
+| Aturan | Alasan |
+|---|---|
+| SL dicek sebelum TP dalam bar yang sama | asumsi terburuk (konservatif) |
+| Satu update per status (terminal) | hindari spam & duplikat |
+| `EXPIRED` setelah 1440 menit | posisi menggantung tidak dibiarkan |
+| Hanya sinyal yang benar-benar terkirim yang dilacak | `open_signal` dipanggil setelah `telegram.send` sukses |
+| `commit=False` saat DRY_RUN | tidak mengotori state saat testing |
+
+### 10.4 Keterbatasan (penting)
+
+- Level SL/TP dihitung dari **PAXG**, bukan feed broker Anda. Selisih 0.1–0.5% bisa
+  membuat bot melaporkan TP1 padahal broker belum tersentuh.
+- Belum ada partial close otomatis atau trailing SL; pesan TP1 hanya **saran**.
+- TP2 belum dilacak terpisah (status terminal di TP1/SL/EXPIRED).
+- Untuk akurasi eksekusi, tracker idealnya membaca harga dari MT5 broker (fase berikutnya).
+
+### 10.5 Pengujian
+
+```bash
+python -m pytest tests/test_tracker.py
+```
+Kasus diuji: TP1, SL priority saat satu bar menyentuh keduanya, EXPIRED, dan tidak ada
+update ganda.

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime
+
 from ..strategy.types import SignalEvent
 from ..utils.time import session_display, to_wib_str
 
@@ -35,3 +37,30 @@ def render_watchlist(event: SignalEvent) -> str:
         f"Setup {event.setup} \u00b7 {event.side} \u00b7 entry {event.entry:.2f}\n"
         f"{', '.join(event.reasons[:4])}"
     )
+
+
+def render_update(update) -> str:
+    if update.status == "TP1":
+        icon, title = "\u2705", "TP1 HIT"
+    elif update.status == "SL":
+        icon, title = "\u274c", "SL HIT"
+    else:
+        icon, title = "\u23f3", "EXPIRED"
+
+    side = update.side.upper()
+    lines = [
+        f"{icon} <b>{update.symbol} {side} \u2014 {title}</b>",
+        "\u2501" * 12,
+        f"Entry  <code>{update.entry:.2f}</code>",
+        f"Exit   <code>{update.exit_price:.2f}</code>",
+        f"Result <b>{update.result_r:+.2f}R</b>",
+        f"SL <code>{update.sl:.2f}</code> \u00b7 TP1 <code>{update.tp1:.2f}</code>",
+        f"Setup {update.setup} \u00b7 opened {to_wib_str(datetime.fromisoformat(str(update.opened_at)))}",
+    ]
+    if update.status == "SL":
+        lines.append("")
+        lines.append("<i>Posisi ditutup di SL. Tidak ada aksi lanjutan.</i>")
+    elif update.status == "TP1":
+        lines.append("")
+        lines.append("<i>Pertimbangkan tutup 50% dan pindahkan SL ke breakeven.</i>")
+    return "\n".join(lines)
