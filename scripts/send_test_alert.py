@@ -5,14 +5,16 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 from src.alerts import telegram
 from src.alerts.templates import render_entry
-from src.config import dry_run
+from src.config import dry_run, load_env_file
 from src.strategy.types import SignalEvent
 
 
 def main() -> None:
+    load_env_file()
     event = SignalEvent(
         symbol="XAUUSD",
         setup="A",

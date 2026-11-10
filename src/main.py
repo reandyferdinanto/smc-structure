@@ -8,7 +8,7 @@ import pandas as pd
 
 from .alerts import templates, telegram
 from .alerts.dedupe import Dedupe
-from .config import Config, dry_run
+from .config import Config, dry_run, load_env_file
 from .data.market import MarketData
 from .macro.calendar import blackout, fetch_events
 from .strategy.engine import Engine
@@ -112,6 +112,7 @@ def main() -> None:
     parser.add_argument("--send", action="store_true", help="force sending even if DRY_RUN")
     args = parser.parse_args()
 
+    load_env_file()
     cfg = Config()
     if args.once or not args.loop:
         payload = run_once(cfg, send=True if args.send else None)

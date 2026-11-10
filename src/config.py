@@ -31,6 +31,22 @@ class Config:
         return value if isinstance(value, dict) else {}
 
 
+def load_env_file(path: str | Path | None = None) -> None:
+    """Minimal .env loader (KEY=VALUE, no interpolation) so scripts work without extra deps."""
+    target = Path(path) if path else ROOT / ".env"
+    if not target.exists():
+        return
+    for line in target.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#") or "=" not in stripped:
+            continue
+        key, value = stripped.split("=", 1)
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        if key and key not in os.environ:
+            os.environ[key] = value
+
+
 def env(name: str, default: str | None = None) -> str | None:
     return os.getenv(name, default)
 
