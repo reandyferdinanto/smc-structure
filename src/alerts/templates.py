@@ -39,6 +39,54 @@ def render_watchlist(event: SignalEvent) -> str:
     )
 
 
+def render_setup(event: SignalEvent) -> str:
+    icon = "\U0001f7e1"
+    side = event.side.upper()
+    zone_low = event.zone_low if event.zone_low is not None else event.entry
+    zone_high = event.zone_high if event.zone_high is not None else event.entry
+    lines = [
+        f"{icon} <b>{event.symbol} SETUP {side}</b> \u00b7 {event.setup}",
+        "\u2501" * 12,
+        f"Zona    <code>{zone_low:.2f} \u2013 {zone_high:.2f}</code>",
+        f"Invalid <code>{event.sl:.2f}</code>",
+        f"TP1 <code>{event.tp1:.2f}</code> \u00b7 TP2 <code>{event.tp2:.2f}</code>",
+        "",
+        "<b>Belum entry.</b> Tunggu pesan <b>OPEN \u2026 NOW</b> setelah konfirmasi M5.",
+        f"Confidence {event.confidence}% \u00b7 {session_display(event.session)}",
+        "",
+        f"<i>{to_wib_str(event.trigger_ts)} \u00b7 armed</i>",
+    ]
+    return "\n".join(lines)
+
+
+def render_trigger(event: SignalEvent, reasons: list[str] | None = None) -> str:
+    icon = "\U0001f7e2" if event.side == "long" else "\U0001f534"
+    side = "LONG" if event.side == "long" else "SHORT"
+    lines = [
+        f"{icon} <b>OPEN {side} NOW \u2014 {event.symbol}</b>",
+        "\u2501" * 12,
+        f"Entry <code>{event.entry:.2f}</code>",
+        f"SL    <code>{event.sl:.2f}</code>",
+        f"TP1   <code>{event.tp1:.2f}</code>  RR <b>{event.rr:.2f}</b>",
+        f"TP2   <code>{event.tp2:.2f}</code>",
+        "",
+        "Konfirmasi M5 valid. Eksekusi sekarang, jangan chase >0.15 ATR.",
+    ]
+    if reasons:
+        lines.append(f"<i>{' \u00b7 '.join(reasons)}</i>")
+    return "\n".join(lines)
+
+
+def render_cancel(event: SignalEvent, reason: str) -> str:
+    side = event.side.upper()
+    label = "EXPIRED" if reason == "expired" else "CANCELLED"
+    return (
+        f"\u26aa <b>{event.symbol} SETUP {side} \u2014 {label}</b>\n"
+        f"Zona {event.zone_low:.2f}\u2013{event.zone_high:.2f} tidak terkonfirmasi.\n"
+        f"<i>Tidak ada entry. Sinyal dihapus.</i>"
+    )
+
+
 def render_update(update) -> str:
     if update.status == "TP1":
         icon, title = "\u2705", "TP1 HIT"

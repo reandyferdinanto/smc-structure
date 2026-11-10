@@ -307,3 +307,71 @@ python -m pytest tests/test_tracker.py
 ```
 Kasus diuji: TP1, SL priority saat satu bar menyentuh keduanya, EXPIRED, dan tidak ada
 update ganda.
+
+---
+
+## 11. Two-Stage Alert — SETUP lalu OPEN (v1.4)
+
+Entry **tidak** dikirim saat setup muncul. Ada dua tahap terpisah:
+
+```
+SETUP ARMED (M15)
+  ├─ invalidasi: close M5 melewati level invalid → CANCELLED
+  ├─ kedaluwarsa: 120 menit tanpa konfirmasi → EXPIRED
+  └─ konfirmasi M5: harga di zona + micro sweep + micro BOS + body
+        ▼
+OPEN LONG/SHORT NOW  ← baru boleh eksekusi
+        ▼
+tracker OPEN → TP1 / SL / EXPIRED
+```
+
+### 11.1 Pesan tahap 1 (belum entry)
+
+```
+🟡 XAUUSD SETUP LONG · A
+━━━━━━━━━━━━
+Zona    4109.50 – 4114.00
+Invalid 4105.47
+TP1 4125.20 · TP2 4134.00
+
+Belum entry. Tunggu pesan OPEN … NOW setelah konfirmasi M5.
+Confidence 82% · LDN/NY overlap
+```
+
+### 11.2 Pesan tahap 2 (eksekusi)
+
+```
+🟢 OPEN LONG NOW — XAUUSD
+━━━━━━━━━━━━
+Entry 4113.10
+SL    4105.10
+TP1   4125.20  RR 1.52
+TP2   4134.00
+
+Konfirmasi M5 valid. Eksekusi sekarang, jangan chase >0.15 ATR.
+```
+
+RR dihitung ulang dari entry aktual; SL mengikuti sweep low terbaru.
+
+### 11.3 Aturan konfirmasi M5 (`src/strategy/trigger.py`)
+
+| Syarat | Parameter |
+|---|---|
+| Harga masuk zona | `zone_tolerance_atr: 0.10` |
+| Body candle ≥ | `min_body_atr: 0.40` |
+| Micro sweep + reclaim (lookback) | `sweep_lookback: 6` |
+| Micro BOS (close melewati high/low bar sebelumnya) | — |
+| Jangan chase | `max_chase_atr: 0.15` |
+| RR minimum setelah entry aktual | `min_rr: 1.2` |
+| Kedaluwarsa setup | `arm_expiry_minutes: 120` |
+
+### 11.4 Konsekuensi yang harus diterima
+
+- **Sebagian setup tidak jadi entry** karena harga langsung menjauh (missed trade).
+  Ini disengaja: mengejar harga adalah sumber loss besar.
+- Konfirmasi M5 bisa **whipsaw** (false trigger). Karena itu RR dihitung ulang dan
+  SL mengikuti sweep terbaru, bukan level lama.
+- **Backtest saat ini masih single-stage** (entry di open bar berikutnya). Backtest
+  two-stage membutuhkan data M5 — belum diimplementasikan. Jangan mengklaim hasil
+  two-stage sebelum ada backtest M5.
+- Setup yang di-cancel/expired tetap dicatat di `state/signals.db` (`armed_signals`).

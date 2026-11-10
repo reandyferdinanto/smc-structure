@@ -52,6 +52,73 @@ class TradeTracker:
             )
             """
         )
+        self._conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS armed_signals (
+                dedupe_key TEXT PRIMARY KEY,
+                symbol TEXT NOT NULL,
+                setup TEXT NOT NULL,
+                side TEXT NOT NULL,
+                zone_low REAL NOT NULL,
+                zone_high REAL NOT NULL,
+                sl REAL NOT NULL,
+                tp1 REAL NOT NULL,
+                tp2 REAL NOT NULL,
+                confidence INTEGER NOT NULL DEFAULT 0,
+                session TEXT DEFAULT '',
+                regime TEXT DEFAULT '',
+                status TEXT NOT NULL DEFAULT 'ARMED',
+                created_at TEXT NOT NULL,
+                expires_at TEXT NOT NULL
+            )
+            """
+        )
+        self._conn.commit()
+
+    def arm(self, event: SignalEvent, expires_minutes: int = 120) -> bool:
+        ts = event.trigger_ts
+        if isinstance(ts, pd.Timestamp):
+            ts = ts.to_pydatetime()
+        if ts is None:
+            return False
+        expires = ts + pd.Timedelta(minutes=expires_minutes)
+        cur = self._conn.execute(
+            """
+            INSERT OR IGNORE INTO armed_signals
+                (dedupe_key, symbol, setup, side, zone_low, zone_high, sl, tp1, tp2,
+                 confidence, session, regime, status, created_at, expires_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'ARMED', ?, ?)
+            """,
+            (
+                event.dedupe_key,
+                event.symbol,
+                event.setup,
+                event.side,
+                float(event.zone_low if event.zone_low is not None else event.entry),
+                float(event.zone_high if event.zone_high is not None else event.entry),
+                float(event.sl),
+                float(event.tp1),
+                float(event.tp2),
+                int(event.confidence),
+                event.session,
+                event.regime,
+                ts.isoformat(),
+                expires.to_pydatetime().isoformat(),
+            ),
+        )
+        self._conn.commit()
+        return cur.rowcount > 0
+
+    def list_armed(self) -> list[sqlite3.Row]:
+        cur = self._conn.execute(
+            "SELECT * FROM armed_signals WHERE status = 'ARMED' ORDER BY created_at"
+        )
+        return cur.fetchall()
+
+    def set_armed_status(self, key: str, status: str) -> None:
+        self._conn.execute(
+            "UPDATE armed_signals SET status = ? WHERE dedupe_key = ?", (status, key)
+        )
         self._conn.commit()
 
     def open_signal(self, event: SignalEvent) -> bool:

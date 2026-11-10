@@ -41,6 +41,15 @@ orb:
   retest_tolerance_atr: 0.15
   require_h1_squeeze: true
 
+trigger:
+  timeframe: "5m"
+  zone_tolerance_atr: 0.10
+  min_body_atr: 0.40
+  sweep_lookback: 6
+  max_chase_atr: 0.15
+  arm_expiry_minutes: 120
+  min_rr: 1.2
+
 sessions:
   london: ["07:00", "10:00"]
   newyork: ["12:00", "15:00"]

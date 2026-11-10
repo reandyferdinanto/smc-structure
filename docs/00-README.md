@@ -103,6 +103,16 @@ Endpoint berikut **sudah dites live** dari mesin development:
 
 ## 7. Changelog
 
+### v1.4 — 10 Nov 2026
+Two-stage alert (setup → konfirmasi M5 → OPEN NOW):
+- `src/strategy/trigger.py` (konfirmasi zona + micro sweep + micro BOS) → `02 §14`
+- `armed_signals` di `state/signals.db`, pesan SETUP/OPEN/CANCEL → `05 §11`
+- `main.py`: fetch M5, proses armed sebelum sinyal baru
+- Backtest masih single-stage (data M5 belum) — dicatat sebagai keterbatasan
+
+### v1.3 — 10 Nov 2026
+Trade tracker: update TP1/SL/EXPIRED otomatis.
+
 ### v1.2 — 10 Nov 2026
 Session layer untuk pengguna WIB:
 - Tabel sesi UTC ↔ WIB (summer/winter) + jam terbaik trading → `02 §13`

@@ -22,6 +22,8 @@ class SignalEvent:
     session: str = ""
     regime: str = ""
     trigger_ts: datetime | None = None
+    zone_low: float | None = None
+    zone_high: float | None = None
 
     @property
     def dedupe_key(self) -> str:
@@ -50,5 +52,7 @@ class SignalEvent:
             "session": self.session,
             "regime": self.regime,
             "trigger_candle_ts": ts.isoformat() if ts else None,
+            "zone_low": round(self.zone_low, 2) if self.zone_low is not None else None,
+            "zone_high": round(self.zone_high, 2) if self.zone_high is not None else None,
             "source": "python",
         }

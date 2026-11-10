@@ -284,6 +284,8 @@ class Engine:
                 session=session,
                 regime=regime.value,
                 trigger_ts=ts,
+                zone_low=zone[0],
+                zone_high=zone[1],
             )
         return None
 
@@ -364,6 +366,8 @@ class Engine:
             session=session,
             regime=regime.value,
             trigger_ts=ts,
+            zone_low=rng.high - 0.15 * atr_value if side == "long" else rng.low,
+            zone_high=rng.low + 0.15 * atr_value if side == "short" else rng.high,
         )
 
     # ------------------------------------------------------------------

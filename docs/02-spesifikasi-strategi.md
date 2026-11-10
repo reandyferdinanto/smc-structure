@@ -499,6 +499,31 @@ Detail lengkap + aturan atribusi: `10-referensi-opensource.md`.
 
 ---
 
+## 14. Two-Stage Entry (v1.4)
+
+Setup M15 **bukan** perintah entry. Ia adalah *armed state* yang menunggu konfirmasi M5.
+
+```
+ARMED (setup terkirim, belum entry)
+  konfirmasi M5:
+    1. close berada di zona [zone_low - 0.10 ATR, zone_high + 0.10 ATR]
+    2. body candle >= 0.40 ATR(M5)
+    3. micro sweep: low <= min(low[-6:-1]) dan close kembali di atasnya (long)
+       (short: mirror pada high)
+    4. micro BOS: close > high[-2] (long) / < low[-2] (short)
+    5. entry = close, SL = min(armed.sl, low - 0.10 ATR)
+    6. RR dihitung ulang terhadap TP1; wajib >= 1.2
+  tolak jika close > zone_high + 0.15 ATR (chase)
+  cancel jika close menembus armed.sl
+  expire setelah 120 menit
+```
+
+Tujuan: entry lebih dekat ke invalidasi sehingga loss per trade lebih kecil, **tanpa**
+mengejar harga. Trade-off: sebagian setup tidak terisi (missed), dan M5 bisa whipsaw.
+Keduanya harus diukur di backtest M5 sebelum dipercaya (lihat `08`).
+
+---
+
 ## 13. Session Layer (v1.2)
 
 Semua kalkulasi internal **UTC**; WIB hanya untuk tampilan. Indonesia tidak memakai DST,
