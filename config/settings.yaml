@@ -3,6 +3,8 @@ strategy:
   bb_mult: 2.0
   squeeze_lookback: 100
   squeeze_percentile: 25
+  squeeze_recent: 6
+  sweep_lookback: 5
   atr_length: 14
   displacement_atr_mult: 1.2
   fvg_min_atr_mult: 0.15

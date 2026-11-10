@@ -16,7 +16,7 @@ from .liquidity import equal_levels, find_sweep, nearest_above, nearest_below
 from .orderblock import find_order_blocks, select_order_block
 from .orb import breakout_side, build_session_range
 from .regime import Regime, classify
-from .structure import analyze, displacement_after, has_internal_choch
+from .structure import analyze, confirmation_after_sweep, displacement_after
 from .swings import pivot_prices
 from .types import SignalEvent
 
@@ -35,6 +35,8 @@ class Engine:
         self.bb_mult = float(s.get("bb_mult", 2.0))
         self.squeeze_lookback = int(s.get("squeeze_lookback", 100))
         self.squeeze_percentile = float(s.get("squeeze_percentile", 25))
+        self.squeeze_recent = int(s.get("squeeze_recent", 6))
+        self.sweep_lookback = int(s.get("sweep_lookback", 5))
         self.atr_length = int(s.get("atr_length", 14))
         self.disp_mult = float(s.get("displacement_atr_mult", 1.2))
         self.fvg_min_mult = float(s.get("fvg_min_atr_mult", 0.15))
@@ -163,7 +165,9 @@ class Engine:
             return None
 
         bb1 = add_bollinger(df_h1, self.bb_length, self.bb_mult)
-        if not is_squeeze(bb1, self.squeeze_lookback, int(self.squeeze_percentile), recent=3):
+        if not is_squeeze(
+            bb1, self.squeeze_lookback, int(self.squeeze_percentile), recent=self.squeeze_recent
+        ):
             return None
 
         side = "long" if bias > 0 else "short"
@@ -190,14 +194,14 @@ class Engine:
 
         for level in candidates:
             sweep_idx = find_sweep(
-                df, level.price, side, atr_value, self.sweep_mult, lookback=3
+                df, level.price, side, atr_value, self.sweep_mult, lookback=self.sweep_lookback
             )
             if sweep_idx is None:
                 continue
             if not displacement_after(df, sweep_idx, atr20, self.disp_mult):
                 continue
-            if not has_internal_choch(
-                df, side, atr_value, k=self.pivot_internal, displacement_mult=self.disp_mult
+            if not confirmation_after_sweep(
+                df, sweep_idx, side, atr_value, self.disp_mult
             ):
                 continue
 

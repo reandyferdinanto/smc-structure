@@ -33,6 +33,14 @@ scripts/      utilitas manual
 tests/        unit test primitif strategi
 ```
 
+## Backtest
+
+```bash
+python scripts/backtest.py --days 60 --every 4 --tag quick60
+```
+
+Panduan lengkap: `docs/11-cara-backtest.md`.
+
 ## Dokumentasi
 
 Baca `docs/00-README.md` lalu `docs/02-spesifikasi-strategi.md` sebelum mengubah

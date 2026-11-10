@@ -82,3 +82,26 @@ def displacement_after(
         return False
     body = (window["close"] - window["open"]).abs()
     return bool(body.max() >= atr_value * mult)
+
+
+def confirmation_after_sweep(
+    df: pd.DataFrame,
+    sweep_index: int,
+    side: str,
+    atr_value: float,
+    displacement_mult: float = 1.2,
+    max_bars: int = 8,
+) -> bool:
+    """Micro BOS after a sweep: last bar closes beyond the local high/low with a body."""
+    start = max(0, len(df) - max_bars, sweep_index)
+    segment = df.iloc[start:]
+    if len(segment) < 2:
+        return False
+    last = segment.iloc[-1]
+    body = abs(float(last["close"]) - float(last["open"]))
+    if body < displacement_mult * atr_value:
+        return False
+    prior = segment.iloc[:-1]
+    if side == "long":
+        return float(last["close"]) > float(prior["high"].max())
+    return float(last["close"]) < float(prior["low"].min())
