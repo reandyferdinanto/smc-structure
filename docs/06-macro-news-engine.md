@@ -286,3 +286,56 @@ TOTAL                                                                     ≈ +5
 - [ ] Keyword scoring punya test case minimal 20 headline
 - [ ] Digest tidak pernah kosong (fallback "tidak ada berita signifikan")
 - [ ] `stale` detection diuji dengan memalsukan timestamp
+
+---
+
+## 9. Perlindungan News Mendadak (v1.5)
+
+Tiga lapis, dari yang pasti ke yang reaktif:
+
+### 9.1 Blackout terjadwal (sudah ada)
+
+- Sumber: ForexFactory JSON (`impact = High`, `currency = USD`)
+- Jendela: **±30 menit** (`news.blackout_minutes`)
+- Efek: entry baru **dan** konfirmasi armed diblokir. Setup yang sedang ARMED tetap
+  menunggu (tidak cancel) sampai jendela lewat atau kedaluwarsa.
+
+### 9.2 Peringatan pre-news (baru)
+
+- `news.pre_news_warn_minutes: 15`
+- Jika ada event High USD dalam 15 menit **dan** ada posisi terbuka/armed →
+  kirim satu warning (dedupe per event) agar Anda bisa menutup/mengurangi posisi
+  sebelum rilis. Tidak menutup posisi otomatis.
+
+### 9.3 Spike guard untuk news tak terjadwal (baru)
+
+Tidak ada kalender untuk geopolitik/tweet mendadak. Deteksinya dari harga:
+
+```
+median_range = median(high-low, 14 bar M1)
+range_ratio  = range_bar_terakhir / median_range
+body_ratio   = |close-open| / median_range
+SPIKE jika range_ratio >= 3.0  atau body_ratio >= 2.5
+```
+
+Efek saat spike:
+- entry baru **tidak** di-arm
+- konfirmasi armed **ditahan** (cancel/expiry tetap jalan)
+- warning dikirim maksimal 1× per 15 menit
+
+### 9.4 Batasan yang harus dipahami
+
+| Klaim | Kenyataan |
+|---|---|
+| "Menghindari news" | Hanya news **terjadwal** yang bisa dicegah; spike guard bereaksi **setelah** candle anomali terbentuk |
+| "SL aman saat news" | Tidak. Spread gold bisa melebar 3–10× dan SL bisa slip jauh dari level |
+| "Cegah margin call" | Bukan tugas alert. Yang mencegah: leverage rendah, risk 0.25–0.5%/trade, maks 1–2 posisi |
+| Posisi terbuka saat spike | Hanya dikirim warning; **tidak** ditutup otomatis |
+
+### 9.5 Checklist operasional
+
+- [ ] Selalu cek digest 12:00 WIB untuk agenda hari ini
+- [ ] Jangan menahan posisi melewati High-impact (CPI/NFP/FOMC)
+- [ ] Gunakan leverage efektif ≤ 1:20 untuk gold
+- [ ] Aktifkan notifikasi Telegram (jangan mute) saat ada posisi
+- [ ] Jika spike guard berbunyi saat posisi terbuka: kurangi/tutup, jangan tambah

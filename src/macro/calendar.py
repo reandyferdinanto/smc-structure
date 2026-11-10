@@ -59,3 +59,22 @@ def blackout(
         if abs(event.ts_utc - ts_utc) <= window:
             return True, event
     return False, None
+
+
+def next_high_impact(
+    events: list[CalendarEvent],
+    ts: datetime,
+    minutes: int = 15,
+    currencies: tuple[str, ...] = ("USD",),
+    impacts: tuple[str, ...] = ("High",),
+) -> CalendarEvent | None:
+    ts_utc = ts.astimezone(timezone.utc) if ts.tzinfo else ts.replace(tzinfo=timezone.utc)
+    horizon = ts_utc + timedelta(minutes=minutes)
+    upcoming = [
+        event
+        for event in events
+        if event.currency in currencies
+        and event.impact in impacts
+        and ts_utc < event.ts_utc <= horizon
+    ]
+    return min(upcoming, key=lambda event: event.ts_utc) if upcoming else None

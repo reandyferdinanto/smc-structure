@@ -77,6 +77,25 @@ def render_trigger(event: SignalEvent, reasons: list[str] | None = None) -> str:
     return "\n".join(lines)
 
 
+def render_volatility_warning(direction: str, price: float, ratio: float) -> str:
+    arrow = "\u2b06\ufe0f" if direction == "up" else "\u2b07\ufe0f"
+    return (
+        f"\u26a1 <b>VOLATILITY SPIKE {arrow}</b>\n"
+        f"Harga <code>{price:.2f}</code> \u00b7 range {ratio:.1f}\u00d7 normal\n"
+        "<i>Entry baru ditahan sementara. Kemungkinan news mendadak.</i>"
+    )
+
+
+def render_prenews(event, minutes: int, open_positions: int) -> str:
+    return (
+        f"\U0001f534 <b>HIGH-IMPACT NEWS dalam {minutes} menit</b>\n"
+        f"{event.title} ({event.currency}) \u00b7 {event.ts_utc.strftime('%H:%M')} UTC\n"
+        f"Posisi terbuka: <b>{open_positions}</b>\n"
+        "<i>Pertimbangkan tutup/kurangi posisi sebelum rilis. Entry baru diblokir "
+        "\u00b130 menit.</i>"
+    )
+
+
 def render_cancel(event: SignalEvent, reason: str) -> str:
     side = event.side.upper()
     label = "EXPIRED" if reason == "expired" else "CANCELLED"

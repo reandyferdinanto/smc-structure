@@ -103,6 +103,12 @@ Endpoint berikut **sudah dites live** dari mesin development:
 
 ## 7. Changelog
 
+### v1.5 — 10 Nov 2026
+Perlindungan news mendadak:
+- Pre-news warning 15 menit (jika ada posisi/armed) → `06 §9.2`
+- Spike guard M1 (range/body vs median) menahan entry baru → `06 §9.3`
+- Konfirmasi armed ditahan saat blackout/spike, cancel & expiry tetap jalan
+
 ### v1.4 — 10 Nov 2026
 Two-stage alert (setup → konfirmasi M5 → OPEN NOW):
 - `src/strategy/trigger.py` (konfirmasi zona + micro sweep + micro BOS) → `02 §14`

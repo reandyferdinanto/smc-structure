@@ -59,6 +59,11 @@ news:
   blackout_minutes: 30
   impacts: ["High"]
   currencies: ["USD"]
+  pre_news_warn_minutes: 15
+  spike_guard: true
+  spike_range_mult: 3.0
+  spike_body_mult: 2.5
+  spike_lookback: 14
 
 confidence:
   base: 40

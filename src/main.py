@@ -11,7 +11,8 @@ from .alerts.dedupe import Dedupe
 from .alerts.tracker import TradeTracker
 from .config import Config, dry_run, load_env_file
 from .data.market import MarketData
-from .macro.calendar import blackout, fetch_events
+from .macro import guard
+from .macro.calendar import blackout, fetch_events, next_high_impact
 from .strategy import trigger
 from .strategy.engine import Engine
 from .strategy.trigger import ArmedSetup
@@ -76,6 +77,7 @@ def process_armed(
     should_send: bool,
     is_blackout: bool,
     cfg: Config,
+    volatile: bool = False,
 ) -> None:
     tcfg = cfg.section("trigger")
     atr_trigger = trigger.atr_now(df_trigger)
@@ -101,7 +103,7 @@ def process_armed(
                     tracker.set_armed_status(row["dedupe_key"], "CANCELLED")
             continue
 
-        if is_blackout:
+        if is_blackout or volatile:
             continue
 
         result = trigger.confirm(
@@ -174,11 +176,44 @@ def run_once(config: Config | None = None, send: bool | None = None) -> dict | N
     if basis is not None:
         log.info("spot=%s basis=%.2f%%", f"{spot.price:.2f}" if spot else "-", basis)
 
+    news_cfg = cfg.section("news")
+    df1 = closed_bars(market.ohlcv("1m", 500), "1m", now)
+    if news_cfg.get("spike_guard", True) and len(df1) > 0:
+        spike = guard.detect_spike(
+            df1,
+            int(news_cfg.get("spike_lookback", 14)),
+            float(news_cfg.get("spike_range_mult", 3.0)),
+            float(news_cfg.get("spike_body_mult", 2.5)),
+        )
+    else:
+        spike = guard.Spike(False, 0.0, 0.0, "")
+    if spike.detected:
+        log.warning(
+            "volatility spike: direction=%s range_ratio=%.1f body_ratio=%.1f",
+            spike.direction,
+            spike.range_ratio,
+            spike.body_ratio,
+        )
+
     calendar_ok = True
     is_blackout = False
+    upcoming = None
     try:
         events = fetch_events()
-        is_blackout, _ = blackout(events, now)
+        is_blackout, _ = blackout(
+            events,
+            now,
+            minutes=int(news_cfg.get("blackout_minutes", 30)),
+            currencies=tuple(news_cfg.get("currencies", ["USD"])),
+            impacts=tuple(news_cfg.get("impacts", ["High"])),
+        )
+        upcoming = next_high_impact(
+            events,
+            now,
+            minutes=int(news_cfg.get("pre_news_warn_minutes", 15)),
+            currencies=tuple(news_cfg.get("currencies", ["USD"])),
+            impacts=tuple(news_cfg.get("impacts", ["High"])),
+        )
     except Exception as exc:  # noqa: BLE001
         calendar_ok = False
         log.warning("calendar unavailable: %s", exc)
@@ -197,7 +232,34 @@ def run_once(config: Config | None = None, send: bool | None = None) -> dict | N
             if should_send:
                 telegram.send(templates.render_update(update))
 
-        process_armed(tracker, df_trigger, now, should_send, is_blackout, cfg)
+        open_count = len(tracker.open_signals())
+        armed_count = len(tracker.list_armed())
+        alert_dedupe = Dedupe()
+        try:
+            if spike.detected and should_send and (open_count or armed_count):
+                key = f"spike:{pd.Timestamp(now).floor('15min')}"
+                if alert_dedupe.is_new(key):
+                    text = templates.render_volatility_warning(
+                        spike.direction, float(df1["close"].iloc[-1]), spike.range_ratio
+                    )
+                    if telegram.send(text):
+                        alert_dedupe.mark(key, "spike")
+            if upcoming is not None and should_send and (open_count or armed_count):
+                key = f"prewarn:{upcoming.ts_utc.isoformat()}"
+                if alert_dedupe.is_new(key):
+                    minutes = max(
+                        1, int((upcoming.ts_utc - pd.Timestamp(now).to_pydatetime()).total_seconds() / 60)
+                    )
+                    if telegram.send(
+                        templates.render_prenews(upcoming, minutes, open_count)
+                    ):
+                        alert_dedupe.mark(key, "prenews")
+        finally:
+            alert_dedupe.close()
+
+        process_armed(
+            tracker, df_trigger, now, should_send, is_blackout, cfg, volatile=spike.detected
+        )
 
         event = engine.evaluate(
             df15,
@@ -213,6 +275,10 @@ def run_once(config: Config | None = None, send: bool | None = None) -> dict | N
 
         payload = event.to_dict()
         log.info("signal %s", payload)
+
+        if spike.detected:
+            log.warning("volatility spike -> new setup not armed")
+            return payload
 
         if not should_send or not calendar_ok:
             if not calendar_ok:
