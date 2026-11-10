@@ -357,6 +357,7 @@ RR dihitung ulang dari entry aktual; SL mengikuti sweep low terbaru.
 
 | Syarat | Parameter |
 |---|---|
+| Timeframe konfirmasi | `trigger.timeframe: 5m` (bisa `1m`, lebih noisy) |
 | Harga masuk zona | `zone_tolerance_atr: 0.10` |
 | Body candle ≥ | `min_body_atr: 0.40` |
 | Micro sweep + reclaim (lookback) | `sweep_lookback: 6` |

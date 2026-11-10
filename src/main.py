@@ -21,7 +21,7 @@ from .utils.time import to_wib_str, utcnow
 
 log = get_logger("main")
 
-TF_MINUTES = {"5m": 5, "15m": 15, "1h": 60, "4h": 240}
+TF_MINUTES = {"1m": 1, "5m": 5, "15m": 15, "1h": 60, "4h": 240}
 
 
 def closed_bars(frame: pd.DataFrame, tf: str, now: datetime) -> pd.DataFrame:
@@ -71,15 +71,15 @@ def _row_to_armed(row) -> ArmedSetup:
 
 def process_armed(
     tracker: TradeTracker,
-    df5: pd.DataFrame,
+    df_trigger: pd.DataFrame,
     now: datetime,
     should_send: bool,
     is_blackout: bool,
     cfg: Config,
 ) -> None:
     tcfg = cfg.section("trigger")
-    atr5 = trigger.atr_now(df5)
-    if atr5 <= 0:
+    atr_trigger = trigger.atr_now(df_trigger)
+    if atr_trigger <= 0:
         return
 
     for row in tracker.list_armed():
@@ -94,7 +94,7 @@ def process_armed(
             continue
 
         armed = _row_to_armed(row)
-        if trigger.invalidated(df5, armed):
+        if trigger.invalidated(df_trigger, armed):
             log.info("armed invalidated: %s %s", event.symbol, event.side)
             if should_send:
                 if telegram.send(templates.render_cancel(event, "cancelled")):
@@ -105,9 +105,9 @@ def process_armed(
             continue
 
         result = trigger.confirm(
-            df5,
+            df_trigger,
             armed,
-            atr5,
+            atr_trigger,
             zone_tol_mult=float(tcfg.get("zone_tolerance_atr", 0.10)),
             min_body_mult=float(tcfg.get("min_body_atr", 0.40)),
             max_chase_mult=float(tcfg.get("max_chase_atr", 0.15)),
@@ -152,11 +152,21 @@ def run_once(config: Config | None = None, send: bool | None = None) -> dict | N
 
     frames = {
         tf: closed_bars(market.ohlcv(tf, 500), tf, now)
-        for tf in ("5m", "15m", "1h", "4h")
+        for tf in ("15m", "1h", "4h")
     }
-    df5, df15, df1h, df4h = frames["5m"], frames["15m"], frames["1h"], frames["4h"]
+    df15, df1h, df4h = frames["15m"], frames["1h"], frames["4h"]
+
+    trigger_tf = str(cfg.get("trigger.timeframe", "5m"))
+    if trigger_tf not in TF_MINUTES:
+        trigger_tf = "5m"
+    df_trigger = closed_bars(market.ohlcv(trigger_tf, 500), trigger_tf, now)
     log.info(
-        "bars 5m=%d 15m=%d 1h=%d 4h=%d", len(df5), len(df15), len(df1h), len(df4h)
+        "bars trigger(%s)=%d 15m=%d 1h=%d 4h=%d",
+        trigger_tf,
+        len(df_trigger),
+        len(df15),
+        len(df1h),
+        len(df4h),
     )
 
     spot = market.spot()
@@ -187,7 +197,7 @@ def run_once(config: Config | None = None, send: bool | None = None) -> dict | N
             if should_send:
                 telegram.send(templates.render_update(update))
 
-        process_armed(tracker, df5, now, should_send, is_blackout, cfg)
+        process_armed(tracker, df_trigger, now, should_send, is_blackout, cfg)
 
         event = engine.evaluate(
             df15,
